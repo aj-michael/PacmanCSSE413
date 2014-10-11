@@ -66,11 +66,15 @@ class QLearningAgent(ReinforcementAgent):
     """
     actions = self.getLegalActions(state)
     if not actions:
-      return None    
-    values = util.Counter()
+      return None
+    bestval = None ; bestlist = []
     for action in actions:
-      values[action] = self.getQValue(stat,action)
-    return tempValues.argMax()
+      qval = self.getQValue(state,action)
+      if not bestval or qval > bestval:
+        bestlist = [action] ; bestval = qval
+      elif qval == bestval:
+        bestlist += [action]
+    return random.choice(bestlist)
 
   def getAction(self, state):
     """
@@ -86,10 +90,7 @@ class QLearningAgent(ReinforcementAgent):
     # Pick Action
     legalActions = self.getLegalActions(state)
     action = None
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
-    return action
+    return random.choice(legalActions) if util.flipCoin(self.epsilon) else self.getPolicy(state)
 
   def update(self, state, action, nextState, reward):
     """
@@ -101,7 +102,9 @@ class QLearningAgent(ReinforcementAgent):
       it will be called on your behalf
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    actions = self.getLegalActions(nextState)
+    s = reward+(self.discount*max(self.getQValue(nextState,action) for action in actions) if actions else 0)
+    self.qvalues[(state,action)] = self.alpha*s+(1-self.alpha)*self.getQValue(state,action)
 
 class PacmanQAgent(QLearningAgent):
   "Exactly the same as QLearningAgent, but with different default parameters"
