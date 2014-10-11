@@ -67,14 +67,10 @@ class QLearningAgent(ReinforcementAgent):
     actions = self.getLegalActions(state)
     if not actions:
       return None
-    bestval = None ; bestlist = []
+    allqvals = util.Counter()
     for action in actions:
-      qval = self.getQValue(state,action)
-      if not bestval or qval > bestval:
-        bestlist = [action] ; bestval = qval
-      elif qval == bestval:
-        bestlist += [action]
-    return random.choice(bestlist)
+      allqvals[action] = self.getQValue(state,action)
+    return allqvals.argMax()
 
   def getAction(self, state):
     """
@@ -88,9 +84,11 @@ class QLearningAgent(ReinforcementAgent):
       HINT: To pick randomly from a list, use random.choice(list)
     """
     # Pick Action
-    legalActions = self.getLegalActions(state)
-    action = None
-    return random.choice(legalActions) if util.flipCoin(self.epsilon) else self.getPolicy(state)
+    actions = self.getLegalActions(state)
+    if not actions:
+        return None
+    return random.choice(actions) if util.flipCoin(self.epsilon) else self.getPolicy(state)
+    
 
   def update(self, state, action, nextState, reward):
     """
@@ -101,10 +99,10 @@ class QLearningAgent(ReinforcementAgent):
       NOTE: You should never call this function,
       it will be called on your behalf
     """
-    "*** YOUR CODE HERE ***"
     actions = self.getLegalActions(nextState)
     s = reward+(self.discount*max(self.getQValue(nextState,action) for action in actions) if actions else 0)
     self.qvalues[(state,action)] = self.alpha*s+(1-self.alpha)*self.getQValue(state,action)
+    
 
 class PacmanQAgent(QLearningAgent):
   "Exactly the same as QLearningAgent, but with different default parameters"
@@ -151,22 +149,24 @@ class ApproximateQAgent(PacmanQAgent):
     PacmanQAgent.__init__(self, **args)
 
     # You might want to initialize weights here.
-    "*** YOUR CODE HERE ***"
+    self.weights = util.Counter()
 
   def getQValue(self, state, action):
     """
       Should return Q(state,action) = w * featureVector
       where * is the dotProduct operator
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fVector = self.featExtractor.getFeatures(state,action)
+    return sum(self.weights[f]*fVector[f] for f in fVector)
 
   def update(self, state, action, nextState, reward):
     """
        Should update your weights based on transition
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    correction = reward+self.discount*self.getValue(nextState)-self.getQValue(state,action)
+    fVector = self.featExtractor.getFeatures(state,action)
+    for f in fVector:
+        self.weights[f] += self.alpha*correction*fVector[f]
 
   def final(self, state):
     "Called at the end of each game."
@@ -176,5 +176,5 @@ class ApproximateQAgent(PacmanQAgent):
     # did we finish training?
     if self.episodesSoFar == self.numTraining:
       # you might want to print your weights here for debugging
-      "*** YOUR CODE HERE ***"
+      # print self.weights
       pass
